@@ -44,6 +44,21 @@ test.describe("Smoke", () => {
     expect(issues.failedResponses).toEqual([]);
   });
 
+  test("rota inexistente renderiza a página 404 e volta ao painel", async ({
+    page,
+  }) => {
+    const response = await page.goto("/pagina-que-nao-existe");
+    expect(response?.status()).toBe(404);
+    await expect(
+      page.getByRole("heading", { name: "Página não encontrada" }),
+    ).toBeVisible();
+
+    await page.getByRole("link", { name: "Voltar ao painel" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Mercado B3", level: 1 }),
+    ).toBeVisible();
+  });
+
   for (const vp of VIEWPORTS) {
     test(`sem overflow horizontal — ${vp.name} (${vp.width}px)`, async ({
       page,

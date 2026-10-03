@@ -1,9 +1,10 @@
+import { handleApi } from "@/lib/server/api";
 import { getCompare, isHistoryRange } from "@/lib/server/brapi";
 import { BffError } from "@/lib/server/errors";
-import { errorResponse, jsonResponse, metaFromResult } from "@/lib/server/http";
+import { jsonResponse, metaFromResult } from "@/lib/server/http";
 
 export async function GET(request: Request): Promise<Response> {
-  try {
+  return handleApi(request, async () => {
     const url = new URL(request.url);
     const raw = url.searchParams.get("symbols");
     if (!raw) {
@@ -16,7 +17,5 @@ export async function GET(request: Request): Promise<Response> {
 
     const result = await getCompare(raw.split(","), range);
     return jsonResponse(result.data, metaFromResult("brapi", result));
-  } catch (e) {
-    return errorResponse(e);
-  }
+  });
 }

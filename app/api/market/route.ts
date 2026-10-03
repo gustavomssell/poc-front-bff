@@ -1,9 +1,10 @@
+import { handleApi } from "@/lib/server/api";
 import { getMarket } from "@/lib/server/brapi";
-import { errorResponse, jsonResponse, metaFromResult } from "@/lib/server/http";
+import { jsonResponse, metaFromResult } from "@/lib/server/http";
 import { BffError } from "@/lib/server/errors";
 
 export async function GET(request: Request): Promise<Response> {
-  try {
+  return handleApi(request, async () => {
     const url = new URL(request.url);
     const sp = url.searchParams;
 
@@ -30,7 +31,5 @@ export async function GET(request: Request): Promise<Response> {
     });
 
     return jsonResponse(result.data, metaFromResult("brapi", result));
-  } catch (e) {
-    return errorResponse(e);
-  }
+  });
 }

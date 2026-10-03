@@ -1,5 +1,7 @@
 # Mercado B3 — POC BFF
 
+[![CI](https://github.com/gustavomssell/poc-front-bff/actions/workflows/ci.yml/badge.svg)](https://github.com/gustavomssell/poc-front-bff/actions/workflows/ci.yml)
+
 Dashboard financeiro da B3 construído para demonstrar o padrão **Backend-for-Frontend (BFF)**: o browser conversa apenas com um BFF em Next.js (Route Handlers), que consolida, cacheia e normaliza APIs públicas antes de responder ao cliente.
 
 > POC técnica — não é recomendação de investimento.
@@ -18,6 +20,8 @@ Variáveis (opcionais, veja `.env.example`):
 | --- | --- |
 | `BRAPI_API_KEY` | Libera cotação/histórico de qualquer ticker da B3 (sem chave: apenas PETR4, VALE3, MGLU3, ITUB4) |
 | `BRAPI_WATCHLIST` | Watchlist do dashboard (padrão: 4 ações de teste + 2 FIIs) |
+| `BFF_RATE_LIMIT_MAX` | Requisições por IP por minuto no BFF (padrão: 120) |
+| `BRAPI_BASE_URL` / `BCB_SGS_BASE_URL` | Sobrescrevem as APIs upstream (usadas pelo E2E apontando para a fixture local) |
 
 ## Arquitetura
 
@@ -61,10 +65,50 @@ brapi.dev (B3)            BCB SGS (macro)
 ## Comandos
 
 ```bash
-npm run dev       # desenvolvimento
-npm run build     # build de produção
-npm run lint      # eslint
-npx tsc --noEmit  # typecheck
+npm run dev        # desenvolvimento
+npm run build      # build de produção
+npm run start      # serve o build de produção
+npm run lint       # eslint
+npm run typecheck  # tsc --noEmit
 ```
 
-Stack: Next.js 16 (App Router, Route Handlers) · React 19 · TypeScript · Tailwind v4 · shadcn/ui · Recharts · Zod.
+## Testes
+
+```bash
+npm run test:unit    # Vitest: cache, rate limit, contrato HTTP, format, config
+npm run test:e2e     # Playwright (chromium) — hermético, sem rede
+E2E_LIVE=1 npm run test:e2e   # mesmo suíte contra as APIs reais (Linux/macOS)
+```
+
+- **Unit**: `tests/unit/**` — lógica pura do BFF (TTL/stale/single-flight do cache, rate limit, validação de env, contrato `{data, meta}` / `{error}`).
+- **E2E**: `tests/e2e/**` — o Playwright sobe o dev server **com o upstream
+  fixture** (`tests/e2e/upstream-fixture.mjs`, porta 4100) que emula brapi e
+  BCB com dados determinísticos; `BRAPI_BASE_URL`/`BCB_SGS_BASE_URL` apontam
+  para ele, cobrindo SSR e chamadas do cliente. Por isso o E2E não depende de
+  rede nem do rate limit público — e roda em ~20s.
+- **Antes de rodar o E2E**: pare o `next dev` local (o Playwright sobe o seu
+  na porta 3001 com o env de fixture e falha se a porta estiver ocupada).
+- **Ao vivo**: `E2E_LIVE=1` omite a fixture e usa as APIs reais (sujeito a
+  20 req/min da brapi); no PowerShell: `$env:E2E_LIVE='1'; npm run test:e2e`.
+
+## CI
+
+`.github/workflows/ci.yml` roda em todo push/PR: `lint` + `typecheck` +
+`test:unit` + `build` (job `quality`) e o Playwright hermético (job `e2e`).
+Dependabot (`.github/dependabot.yml`) abre PRs semanais de npm e actions.
+
+## Segurança e operação
+
+- Rate limit por IP no BFF (`429` + `retry-after` + headers
+  `x-ratelimit-*`), configurável via `BFF_RATE_LIMIT_MAX`.
+- Log estruturado em JSON por requisição (`bff.request`,
+  `bff.request_failed`, `bff.rate_limited`) no stdout do servidor.
+- Security headers em `next.config.ts`: CSP (com `unsafe-eval` só em dev),
+  `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`,
+  HSTS.
+- Env validada com Zod (`lib/server/config.ts`): valor inválido gera aviso
+  estruturado e cai nos defaults — nunca derruba o boot.
+- Páginas de erro: `app/error.tsx` (retry), `app/not-found.tsx` (404),
+  `app/loading.tsx` (skeleton).
+
+Stack: Next.js 16 (App Router, Route Handlers) · React 19 · TypeScript · Tailwind v4 · shadcn/ui · Recharts · Zod · Vitest · Playwright.

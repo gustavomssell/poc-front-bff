@@ -1,11 +1,10 @@
+import { handleApi } from "@/lib/server/api";
 import { getMacro } from "@/lib/server/bcb";
-import { errorResponse, jsonResponse, metaFromResult } from "@/lib/server/http";
+import { jsonResponse, metaFromResult } from "@/lib/server/http";
 
-export async function GET(): Promise<Response> {
-  try {
+export async function GET(request: Request): Promise<Response> {
+  return handleApi(request, async () => {
     const result = await getMacro();
     return jsonResponse(result.data, metaFromResult("bcb", result));
-  } catch (e) {
-    return errorResponse(e);
-  }
+  });
 }

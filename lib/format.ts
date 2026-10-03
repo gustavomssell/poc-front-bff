@@ -63,7 +63,8 @@ export function formatMonthLabel(iso: string): string {
   const date = new Date(`${iso}T12:00:00Z`);
   return new Intl.DateTimeFormat("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" })
     .format(date)
-    .replace(".", "");
+    .replace(".", "")
+    .replace(" de ", " ");
 }
 
 /** "02/10" */
