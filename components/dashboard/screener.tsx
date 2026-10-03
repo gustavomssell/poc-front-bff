@@ -404,12 +404,16 @@ export function Screener() {
                       </TableCell>
                       <TableCell>
                         <span className="flex min-w-0 items-center gap-2">
-                          <TickerLogo src={row.logoUrl} alt={row.symbol} />
+                          <TickerLogo
+                            src={row.logoUrl}
+                            alt={row.symbol}
+                            className="max-sm:hidden"
+                          />
                           <span className="min-w-0">
                             <span className="block text-xs font-medium">
                               {row.symbol}
                             </span>
-                            <span className="block max-w-[10ch] truncate text-[11px] text-muted-foreground sm:max-w-[20ch]">
+                            <span className="block max-w-[8ch] truncate text-[11px] text-muted-foreground sm:max-w-[20ch]">
                               {row.name}
                               {row.sector ? ` · ${row.sector}` : ""}
                             </span>
